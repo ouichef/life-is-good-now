@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Peel the Banana</title>
+<title>Life Is Good</title>
 <style>
   :root {
     --bg-1: #fff7d9;
@@ -49,13 +49,13 @@
     font-size: clamp(28px, 5vw, 46px);
     letter-spacing: -.02em;
     font-weight: 800;
+    text-wrap: balance;
   }
-  header p { margin: 4px 0 0; color: var(--muted); font-size: clamp(14px, 2vw, 17px); }
 
   /* ---------- scene ---------- */
   .scene {
     position: relative;
-    width: min(100%, calc((100svh - 190px) * 1.111));
+    width: min(100%, calc((100svh - 150px) * 1.111));
     min-width: 280px;
     aspect-ratio: 1000 / 900;
     perspective: 1700px;
@@ -139,20 +139,6 @@
   .peeled #f-front { transition-delay: .14s; transform: translateZ(6px)  rotate(-8deg)   rotateX(-122deg); }
   .peeled #f-back  { transition-delay: .05s; transform: translateZ(-3px) rotate(20deg)   rotateX(122deg); }
 
-  /* ---------- UI ---------- */
-  .hint {
-    margin: 0;
-    padding: 9px 20px;
-    border-radius: 999px;
-    background: var(--pill-bg);
-    border: 1px solid var(--pill-border);
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
-    font-weight: 700;
-    font-size: 15px;
-    color: var(--ink);
-  }
-
   @media (prefers-reduced-motion: reduce) {
     .bob, .floor-shadow { animation: none; }
     .pop.squish { animation: none; }
@@ -165,16 +151,13 @@
 </head>
 <body>
   <header>
-    <h1>Peel the Banana</h1>
-    <p>One banana. One very satisfying click.</p>
+    <h1>Your life is bad and this will make it better</h1>
   </header>
 
   <div class="scene" id="scene" role="button" tabindex="0" aria-pressed="false" aria-label="Banana. Press to un-peel it.">
     <div class="floor-shadow"></div>
     <div class="pop" id="pop"><div class="bob" id="bob"></div></div>
   </div>
-
-  <p class="hint" id="hint" aria-live="polite">Click the banana to un-peel it</p>
 
 <script>
 (() => {
@@ -438,13 +421,11 @@
   /* ---------- interaction ---------- */
   const scene = document.getElementById('scene');
   const pop = document.getElementById('pop');
-  const hint = document.getElementById('hint');
 
   function toggle() {
     const peeled = scene.classList.toggle('peeled');
     scene.setAttribute('aria-pressed', String(peeled));
     scene.setAttribute('aria-label', peeled ? 'Banana, un-peeled. Press to peel it back on.' : 'Banana. Press to un-peel it.');
-    hint.textContent = peeled ? 'Click again to peel it back on' : 'Click the banana to un-peel it';
     pop.classList.remove('squish'); void pop.offsetWidth; pop.classList.add('squish');
   }
   scene.addEventListener('click', toggle);
