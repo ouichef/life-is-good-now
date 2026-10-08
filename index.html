@@ -1,0 +1,466 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Peel the Banana</title>
+<style>
+  :root {
+    --bg-1: #fff7d9;
+    --bg-2: #ffe7a0;
+    --ink: #4a3410;
+    --muted: #8a6a2a;
+    --pill-bg: rgba(255, 255, 255, .6);
+    --pill-border: rgba(120, 85, 20, .18);
+    --shadow: rgba(92, 58, 8, .38);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg-1: #3a2c15;
+      --bg-2: #130f08;
+      --ink: #fdeab4;
+      --muted: #cfae62;
+      --pill-bg: rgba(255, 255, 255, .07);
+      --pill-border: rgba(255, 225, 150, .18);
+      --shadow: rgba(0, 0, 0, .65);
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    min-height: 100svh;
+    background: radial-gradient(ellipse 80% 70% at 50% 38%, var(--bg-1), var(--bg-2) 80%);
+    color: var(--ink);
+    font-family: ui-rounded, "SF Pro Rounded", "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 20px 16px 24px;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  header { text-align: center; }
+  h1 {
+    margin: 0;
+    font-size: clamp(28px, 5vw, 46px);
+    letter-spacing: -.02em;
+    font-weight: 800;
+  }
+  header p { margin: 4px 0 0; color: var(--muted); font-size: clamp(14px, 2vw, 17px); }
+
+  /* ---------- scene ---------- */
+  .scene {
+    position: relative;
+    width: min(100%, calc((100svh - 190px) * 1.111));
+    min-width: 280px;
+    aspect-ratio: 1000 / 900;
+    perspective: 1700px;
+    perspective-origin: 50% 40%;
+    transition: perspective-origin .5s ease-out;
+    cursor: pointer;
+    outline: none;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .scene:focus-visible { outline: 3px solid #e0a800; outline-offset: 6px; border-radius: 24px; }
+
+  .floor-shadow {
+    position: absolute;
+    left: 29%; width: 44%;
+    bottom: 3.5%; height: 5%;
+    background: radial-gradient(ellipse at center, var(--shadow) 0%, transparent 70%);
+    animation: shadow-bob 5s ease-in-out infinite;
+    transition: width .8s, left .8s;
+  }
+  .scene.peeled .floor-shadow { left: 18%; width: 66%; }
+  @keyframes shadow-bob {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(.88); opacity: .75; }
+  }
+
+  .pop, .bob, .layer { position: absolute; inset: 0; transform-style: preserve-3d; }
+  .bob { animation: bob 5s ease-in-out infinite; }
+  @keyframes bob {
+    0%, 100% { transform: translateY(0) rotate(-1.2deg); }
+    50% { transform: translateY(-2.2%) rotate(1.2deg); }
+  }
+  .pop.squish { animation: squish .55s cubic-bezier(.3, 1.6, .5, 1); }
+  @keyframes squish {
+    0% { transform: scale(1, 1); }
+    25% { transform: scale(1.05, .94); }
+    60% { transform: scale(.98, 1.03); }
+    100% { transform: scale(1, 1); }
+  }
+  .scene:hover .pop:not(.squish) { transform: scale(1.012); }
+  .pop { transition: transform .3s; }
+
+  .layer { transform-origin: 50% 60%; }
+  .face {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    overflow: visible;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    transform-origin: 50% 50%;
+  }
+  .face.back { transform: rotateY(180deg); }
+
+  /* ---------- peel flaps ---------- */
+  .flap { transition-property: transform; }
+
+  #f-back  { transform: translateZ(-3px) rotate(0deg) rotateX(0deg); }
+  #f-left  { transform: translateZ(3px)  rotate(0deg) rotateX(0deg); }
+  #f-right { transform: translateZ(3px)  rotate(0deg) rotateX(0deg); }
+  #f-front { transform: translateZ(6px)  rotate(0deg) rotateX(0deg); }
+
+  /* closing: firm, no overshoot (a flap must never swing through the fruit) */
+  #f-back, #f-left, #f-right, #f-front {
+    transition-duration: .85s;
+    transition-timing-function: cubic-bezier(.55, 0, .25, 1);
+  }
+  #f-left  { transition-delay: .10s; }
+  #f-right { transition-delay: .04s; }
+  #f-front { transition-delay: 0s; }
+  #f-back  { transition-delay: .14s; }
+
+  /* opening: floppy with a little overshoot */
+  .peeled #f-back, .peeled #f-left, .peeled #f-right, .peeled #f-front {
+    transition-duration: 1.35s;
+    transition-timing-function: cubic-bezier(.25, 1.3, .45, 1);
+  }
+  .peeled #f-left  { transition-delay: 0s;   transform: translateZ(3px)  rotate(-128deg) rotateX(0deg); }
+  .peeled #f-right { transition-delay: .07s; transform: translateZ(3px)  rotate(118deg)  rotateX(0deg); }
+  .peeled #f-front { transition-delay: .14s; transform: translateZ(6px)  rotate(-8deg)   rotateX(-122deg); }
+  .peeled #f-back  { transition-delay: .05s; transform: translateZ(-3px) rotate(20deg)   rotateX(122deg); }
+
+  /* ---------- UI ---------- */
+  .hint {
+    margin: 0;
+    padding: 9px 20px;
+    border-radius: 999px;
+    background: var(--pill-bg);
+    border: 1px solid var(--pill-border);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--ink);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .bob, .floor-shadow { animation: none; }
+    .pop.squish { animation: none; }
+    #f-back, #f-left, #f-right, #f-front,
+    .peeled #f-back, .peeled #f-left, .peeled #f-right, .peeled #f-front {
+      transition-duration: .01s; transition-delay: 0s;
+    }
+  }
+</style>
+</head>
+<body>
+  <header>
+    <h1>Peel the Banana</h1>
+    <p>One banana. One very satisfying click.</p>
+  </header>
+
+  <div class="scene" id="scene" role="button" tabindex="0" aria-pressed="false" aria-label="Banana. Press to un-peel it.">
+    <div class="floor-shadow"></div>
+    <div class="pop" id="pop"><div class="bob" id="bob"></div></div>
+  </div>
+
+  <p class="hint" id="hint" aria-live="polite">Click the banana to un-peel it</p>
+
+<script>
+(() => {
+  const NS = 'http://www.w3.org/2000/svg';
+  const VW = 1000, VH = 900;
+
+  /* ------------------------------------------------------------------
+     Banana geometry: a centerline Bézier + a width profile.
+     pt(t, u) -> screen point at length t (0 = stem, 1 = tip),
+     lateral position u in [-1, 1] across the body.
+  ------------------------------------------------------------------ */
+  const P = [[500, 540], [438, 415], [446, 250], [566, 120]];
+  const MAXW = 56;
+
+  const bez = t => {
+    const m = 1 - t;
+    return [
+      m*m*m*P[0][0] + 3*m*m*t*P[1][0] + 3*m*t*t*P[2][0] + t*t*t*P[3][0],
+      m*m*m*P[0][1] + 3*m*m*t*P[1][1] + 3*m*t*t*P[2][1] + t*t*t*P[3][1]
+    ];
+  };
+  const dbez = t => {
+    const m = 1 - t;
+    return [
+      3*m*m*(P[1][0]-P[0][0]) + 6*m*t*(P[2][0]-P[1][0]) + 3*t*t*(P[3][0]-P[2][0]),
+      3*m*m*(P[1][1]-P[0][1]) + 6*m*t*(P[2][1]-P[1][1]) + 3*t*t*(P[3][1]-P[2][1])
+    ];
+  };
+  const prof = t => {
+    const end = .22 * (1 - t) + .15 * t;
+    return MAXW * (end + (1 - end) * Math.pow(Math.sin(Math.PI * Math.pow(t, .75)), .6));
+  };
+  const pt = (t, u) => {
+    const c = bez(t), d = dbez(t), l = Math.hypot(d[0], d[1]), w = prof(t) * u;
+    return [c[0] + (-d[1] / l) * w, c[1] + (d[0] / l) * w];
+  };
+  const angleAt = t => { const d = dbez(t); return Math.atan2(d[1], d[0]) * 180 / Math.PI; };
+
+  /* ---------- tiny SVG helpers ---------- */
+  const $ = (tag, attrs = {}, parent) => {
+    const e = document.createElementNS(NS, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(e);
+    return e;
+  };
+  const f1 = n => n.toFixed(1);
+  const poly = (pts, close) => 'M' + pts.map(p => f1(p[0]) + ' ' + f1(p[1])).join('L') + (close ? 'Z' : '');
+  const edge = (u, t0, t1, N = 64) => {
+    const a = [];
+    for (let i = 0; i <= N; i++) a.push(pt(t0 + (t1 - t0) * i / N, u));
+    return a;
+  };
+  const band = (a, b, t0 = 0, t1 = 1) => poly(edge(a, t0, t1).concat(edge(b, t0, t1).reverse()), true);
+  const line = (u, t0 = 0, t1 = 1, N = 64) => poly(edge(u, t0, t1, N));
+  const rng = a => () => {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+
+  /* ---------- shared defs (filters, gradients) ---------- */
+  const gsvg = $('svg', { width: 0, height: 0, 'aria-hidden': 'true', style: 'position:absolute' }, document.body);
+  const defs = $('defs', {}, gsvg);
+  [2, 4, 6, 9, 14].forEach(s => {
+    const f = $('filter', { id: 'bl' + s, x: '-30%', y: '-30%', width: '160%', height: '160%' }, defs);
+    $('feGaussianBlur', { stdDeviation: s }, f);
+  });
+  {
+    const f = $('filter', { id: 'grain', x: '0', y: '0', width: '100%', height: '100%' }, defs);
+    $('feTurbulence', { type: 'fractalNoise', baseFrequency: '.85', numOctaves: 2, seed: 4, result: 'n' }, f);
+    $('feColorMatrix', { in: 'n', type: 'matrix', values: '0 0 0 0 .36  0 0 0 0 .22  0 0 0 0 .02  0 0 0 .9 -.28' }, f);
+  }
+  const lg = (id, x1, y1, x2, y2, stops) => {
+    const g = $('linearGradient', { id, gradientUnits: 'userSpaceOnUse', x1, y1, x2, y2 }, defs);
+    stops.forEach(([o, c]) => $('stop', { offset: o, 'stop-color': c }, g));
+  };
+  lg('skinG', 500, 540, 566, 120, [
+    [0, '#aeb534'], [.12, '#dcc92e'], [.3, '#f4cf2a'], [.55, '#f8d535'], [.82, '#efc524'], [.94, '#c9b02a'], [1, '#8c8a2a']
+  ]);
+  lg('pulpG', 500, 540, 566, 120, [[0, '#ece2a4'], [.5, '#f8f1cd'], [1, '#eadd9a']]);
+  lg('stemG', 500, 540, 556, 670, [[0, '#8d9a30'], [.3, '#6e7a25'], [.75, '#5a4818'], [1, '#3e2d10']]);
+
+  /* ---------- skin face of a flap ---------- */
+  function skin(parent, name, u0, u1) {
+    const cp = $('clipPath', { id: 'c-' + name }, defs);
+    $('path', { d: band(u0, u1) }, cp);
+    const root = $('g', { 'clip-path': `url(#c-${name})` }, parent);
+    const inR = (a, b) => Math.max(a, u0) < Math.min(b, u1);
+
+    $('path', { d: band(u0 - .05, u1 + .05), fill: 'url(#skinG)' }, root);
+
+    if (inR(-.65, -.18)) $('path', { d: band(-.65, -.18, .07, .94), fill: '#fff7b4', opacity: .55, filter: 'url(#bl9)' }, root);
+    if (inR(-.52, -.32)) $('path', { d: band(-.52, -.32, .16, .8),  fill: '#fffbd6', opacity: .55, filter: 'url(#bl4)' }, root);
+    if (inR(.5, 1.2))    $('path', { d: band(.5, 1.2),    fill: '#9c6504', opacity: .55, filter: 'url(#bl14)' }, root);
+    if (inR(-1.2, -.75)) $('path', { d: band(-1.2, -.75), fill: '#9c6504', opacity: .42, filter: 'url(#bl9)' }, root);
+    if (inR(.12, .3))    $('path', { d: band(.12, .3, .2, .75), fill: '#fff3a0', opacity: .18, filter: 'url(#bl6)' }, root);
+
+    // darker ripeness at both ends
+    $('path', { d: band(u0 - .05, u1 + .05, .0, .1), fill: '#6f7d1c', opacity: .3, filter: 'url(#bl9)' }, root);
+    $('path', { d: band(u0 - .05, u1 + .05, .92, 1), fill: '#5a5418', opacity: .35, filter: 'url(#bl6)' }, root);
+
+    // fine grain
+    $('path', { d: band(u0, u1), fill: '#000', filter: 'url(#grain)', opacity: .55 }, root);
+
+    // longitudinal streaks
+    const r = rng(11);
+    for (let i = 0; i < 70; i++) {
+      const u = -1 + 2 * r(), t0 = .03 + .6 * r(), len = .2 + .4 * r(), o = .08 + .12 * r(), w = .6 + .9 * r();
+      if (u < u0 || u > u1) continue;
+      $('path', { d: line(u, t0, Math.min(.98, t0 + len), 28), fill: 'none', stroke: '#a97a0c', 'stroke-width': w, opacity: o }, root);
+    }
+
+    // soft bruises
+    const rb = rng(5);
+    for (let i = 0; i < 14; i++) {
+      const t = .12 + .8 * rb(), u = -.9 + 1.8 * rb(), s = 7 + 14 * rb(), o = .1 + .12 * rb();
+      if (u < u0 || u > u1) continue;
+      const [x, y] = pt(t, u);
+      $('ellipse', { cx: f1(x), cy: f1(y), rx: f1(s), ry: f1(s * 1.6), transform: `rotate(${f1(angleAt(t) - 90)} ${f1(x)} ${f1(y)})`, fill: '#7a4c08', opacity: o.toFixed(2), filter: 'url(#bl6)' }, root);
+    }
+
+    // sugar spots
+    const rs = rng(42);
+    for (let i = 0; i < 200; i++) {
+      const t = .05 + .92 * rs(), u = -.96 + 1.92 * rs(), s = rs(), a = rs(), b = rs();
+      if (u < u0 || u > u1) continue;
+      const [x, y] = pt(t, u);
+      const rx = .8 + s * s * 2.9, ry = rx * (.5 + .5 * a);
+      $('ellipse', { cx: f1(x), cy: f1(y), rx: f1(rx), ry: f1(ry), transform: `rotate(${f1(angleAt(t))} ${f1(x)} ${f1(y)})`, fill: '#4f3208', opacity: (.25 + .5 * b).toFixed(2) }, root);
+    }
+
+    // ridge seams where flaps meet
+    [u0, u1].forEach(u => {
+      if (u <= -.99 || u >= .99) return;
+      $('path', { d: line(u), fill: 'none', stroke: '#7a5205', 'stroke-width': 3, opacity: .38, filter: 'url(#bl2)' }, root);
+      $('path', { d: line(u), fill: 'none', stroke: '#f3e692', 'stroke-width': 3.6, opacity: .85 }, root);
+    });
+
+    // silhouette edge definition
+    [[-1, u0], [1, u1]].forEach(([edgeU, bound]) => {
+      if (bound === edgeU) $('path', { d: line(edgeU), fill: 'none', stroke: '#a77708', 'stroke-width': 3.5, opacity: .55 }, root);
+    });
+  }
+
+  /* ---------- pulp (inner) face of a flap ---------- */
+  function pulp(parent, name, u0, u1) {
+    const root = $('g', { 'clip-path': `url(#c-${name})` }, parent);
+    $('path', { d: band(u0 - .05, u1 + .05), fill: 'url(#pulpG)' }, root);
+    $('path', { d: band(-1.2, -.7), fill: '#bfb261', opacity: .55, filter: 'url(#bl9)' }, root);
+    $('path', { d: band(.6, 1.2),   fill: '#bfb261', opacity: .55, filter: 'url(#bl9)' }, root);
+    $('path', { d: band(-.3, .25, .1, .9), fill: '#fffbe0', opacity: .55, filter: 'url(#bl14)' }, root);
+    const r = rng(77);
+    for (let i = 0; i < 22; i++) {
+      const u = -.95 + 1.9 * r(), t0 = .03 + .3 * r(), t1 = .55 + .43 * r(), o = .25 + .35 * r();
+      if (u < u0 || u > u1) continue;
+      $('path', { d: line(u, t0, t1, 30), fill: 'none', stroke: '#b9a95a', 'stroke-width': .8 + r(), opacity: o }, root);
+    }
+    $('path', { d: band(u0, u1), fill: 'none', stroke: '#c6b868', 'stroke-width': 7, opacity: .8 }, root);
+    $('path', { d: band(u0, u1, 0, .08), fill: '#9aa13a', opacity: .35, filter: 'url(#bl6)' }, root);
+  }
+
+  /* ---------- scene assembly ---------- */
+  const bob = document.getElementById('bob');
+  const layer = (id, cls) => {
+    const d = document.createElement('div');
+    d.className = 'layer' + (cls ? ' ' + cls : '');
+    if (id) d.id = id;
+    bob.appendChild(d);
+    return d;
+  };
+  const face = (parent, back) => {
+    const s = document.createElementNS(NS, 'svg');
+    s.setAttribute('viewBox', `0 0 ${VW} ${VH}`);
+    s.setAttribute('class', 'face' + (back ? ' back' : ''));
+    s.setAttribute('aria-hidden', 'true');
+    parent.appendChild(s);
+    return back ? $('g', { transform: `translate(${VW} 0) scale(-1 1)` }, s) : s;
+  };
+
+  function makeFlap(id, name, u0, u1, opts) {
+    const L = layer(id, 'flap');
+    const skinSide = face(L, !opts.skinFront);
+    const pulpSide = opts.pulp ? face(L, opts.skinFront) : null;
+    // clipPath must exist before use
+    skin(skinSide, name, u0, u1);
+    if (pulpSide) pulp(pulpSide, name, u0, u1);
+    return L;
+  }
+
+  /* 1 — back flap (hangs behind the banana) */
+  makeFlap('f-back', 'back', -.6, .6, { skinFront: false, pulp: true });
+
+  /* 2 — stem */
+  {
+    const L = layer('stem');
+    const s = face(L, false);
+    const T0 = -.34, T1 = .04, N = 40;
+    const side = k => {
+      const a = [];
+      for (let i = 0; i <= N; i++) {
+        const t = T0 + (T1 - T0) * i / N, c = bez(t), d = dbez(t), l = Math.hypot(d[0], d[1]);
+        const w = 12.5 + 3.5 * Math.pow((T1 - t) / (T1 - T0), 1.4);
+        a.push([c[0] + (-d[1] / l) * w * k, c[1] + (d[0] / l) * w * k]);
+      }
+      return a;
+    };
+    const outline = poly(side(-1).concat(side(1).reverse()), true);
+    const cp = $('clipPath', { id: 'c-stem' }, defs);
+    $('path', { d: outline }, cp);
+    const g = $('g', { 'clip-path': 'url(#c-stem)' }, s);
+    $('path', { d: outline, fill: 'url(#stemG)' }, g);
+    const sl = (k, t0, t1) => poly(Array.from({ length: 21 }, (_, i) => {
+      const t = t0 + (t1 - t0) * i / 20, c = bez(t), d = dbez(t), l = Math.hypot(d[0], d[1]);
+      return [c[0] + (-d[1] / l) * 14 * k, c[1] + (d[0] / l) * 14 * k];
+    }));
+    $('path', { d: sl(-.55, T0, T1), fill: 'none', stroke: '#d8e08a', 'stroke-width': 7, opacity: .35, filter: 'url(#bl4)' }, g);
+    $('path', { d: sl(.9, T0, T1),  fill: 'none', stroke: '#21160a', 'stroke-width': 9, opacity: .45, filter: 'url(#bl4)' }, g);
+    [-.45, .1, .55].forEach(k => $('path', { d: sl(k, T0, T1), fill: 'none', stroke: '#2e2209', 'stroke-width': 1.2, opacity: .45 }, g));
+    // cut end
+    const [ex, ey] = bez(T0), ang = angleAt(T0) + 90;
+    const tr = `rotate(${f1(ang)} ${f1(ex)} ${f1(ey)})`;
+    $('ellipse', { cx: f1(ex), cy: f1(ey), rx: 17, ry: 7.5, transform: tr, fill: '#35260c' }, s);
+    $('ellipse', { cx: f1(ex), cy: f1(ey), rx: 13, ry: 5, transform: tr, fill: '#7a5e26' }, s);
+    $('ellipse', { cx: f1(ex), cy: f1(ey), rx: 7, ry: 2.6, transform: tr, fill: '#a98a46', opacity: .8 }, s);
+  }
+
+  /* 3 — fruit */
+  {
+    const L = layer('fruit');
+    const s = face(L, false);
+    $('path', { d: band(-.78, .78, .02, .975), fill: '#d6bb6c', stroke: '#d6bb6c', 'stroke-width': 8, 'stroke-linejoin': 'round' }, s);
+    $('path', { d: band(-.58, .58, .05, .95), fill: '#fff2b8', stroke: '#fff2b8', 'stroke-width': 14, 'stroke-linejoin': 'round', filter: 'url(#bl9)' }, s);
+    $('path', { d: band(-.32, .4, .1, .88), fill: '#fffbe3', opacity: .65, filter: 'url(#bl14)' }, s);
+    // lobes
+    [-.34, .36].forEach(u => $('path', { d: line(u, .06, .94), fill: 'none', stroke: '#d6bf7c', 'stroke-width': 3, opacity: .7, filter: 'url(#bl2)' }, s));
+    // strings
+    [-.5, -.05, .5].forEach((u, i) => $('path', { d: line(u, .04, .93 - i * .03, 40), fill: 'none', stroke: '#c9b06a', 'stroke-width': 1.3, opacity: .55, filter: 'url(#bl2)' }, s));
+    // gloss
+    $('path', { d: line(-.42, .14, .82), fill: 'none', stroke: '#fff', 'stroke-width': 7, 'stroke-linecap': 'round', opacity: .55, filter: 'url(#bl4)' }, s);
+    $('path', { d: line(.5, .2, .6), fill: 'none', stroke: '#fff', 'stroke-width': 4, 'stroke-linecap': 'round', opacity: .28, filter: 'url(#bl4)' }, s);
+    // flower-end tip
+    const [tx, ty] = pt(.985, 0);
+    $('ellipse', { cx: f1(tx), cy: f1(ty), rx: 5, ry: 3.5, transform: `rotate(${f1(angleAt(1) + 90)} ${f1(tx)} ${f1(ty)})`, fill: '#a7864a', opacity: .85 }, s);
+  }
+
+  /* 4 — side flaps, 5 — front flap (with the dark tip) */
+  makeFlap('f-right', 'right', .38, 1, { skinFront: true, pulp: false });
+  makeFlap('f-left', 'left', -1, -.38, { skinFront: true, pulp: false });
+  {
+    const L = makeFlap('f-front', 'front', -.38, .38, { skinFront: true, pulp: true });
+    const s = L.querySelector('svg.face:not(.back)');
+    const [nx, ny] = pt(1, 0), a = angleAt(1), r = a * Math.PI / 180;
+    const cx = nx + Math.cos(r) * 3, cy = ny + Math.sin(r) * 3;
+    const tr = `rotate(${f1(a)} ${f1(cx)} ${f1(cy)})`;
+    $('ellipse', { cx: f1(cx), cy: f1(cy), rx: 10, ry: 15, transform: tr, fill: '#2a1d0b' }, s);
+    $('ellipse', { cx: f1(cx - 2), cy: f1(cy - 2), rx: 6, ry: 9, transform: tr, fill: '#4a3517', opacity: .8 }, s);
+    $('ellipse', { cx: f1(cx - 3), cy: f1(cy - 5), rx: 2.2, ry: 3.5, transform: tr, fill: '#8d7440', opacity: .6 }, s);
+  }
+
+  /* ---------- interaction ---------- */
+  const scene = document.getElementById('scene');
+  const pop = document.getElementById('pop');
+  const hint = document.getElementById('hint');
+
+  function toggle() {
+    const peeled = scene.classList.toggle('peeled');
+    scene.setAttribute('aria-pressed', String(peeled));
+    scene.setAttribute('aria-label', peeled ? 'Banana, un-peeled. Press to peel it back on.' : 'Banana. Press to un-peel it.');
+    hint.textContent = peeled ? 'Click again to peel it back on' : 'Click the banana to un-peel it';
+    pop.classList.remove('squish'); void pop.offsetWidth; pop.classList.add('squish');
+  }
+  scene.addEventListener('click', toggle);
+  scene.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
+  });
+  pop.addEventListener('animationend', () => pop.classList.remove('squish'));
+
+  // gentle parallax: shift the camera a little so the 3D flaps show depth
+  window.addEventListener('pointermove', e => {
+    const r = scene.getBoundingClientRect();
+    const x = Math.max(0, Math.min(100, ((e.clientX - r.left) / r.width) * 100));
+    const y = Math.max(0, Math.min(100, ((e.clientY - r.top) / r.height) * 100));
+    scene.style.perspectiveOrigin = `${(50 + (x - 50) * .5).toFixed(1)}% ${(40 + (y - 50) * .5).toFixed(1)}%`;
+  });
+})();
+</script>
+</body>
+</html>
