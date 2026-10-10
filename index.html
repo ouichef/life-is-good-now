@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Life Is Good</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8D%8C%3C/text%3E%3C/svg%3E">
 <style>
   :root {
     --bg-1: #fff7d9;
@@ -27,7 +28,7 @@
   }
 
   * { box-sizing: border-box; }
-  html, body { height: 100%; margin: 0; }
+  html, body { height: 100%; margin: 0; overflow: hidden; }
   body {
     min-height: 100svh;
     background: radial-gradient(ellipse 80% 70% at 50% 38%, var(--bg-1), var(--bg-2) 80%);
@@ -90,15 +91,12 @@
     0%, 100% { transform: translateY(0) rotate(-1.2deg); }
     50% { transform: translateY(-2.2%) rotate(1.2deg); }
   }
-  .pop.squish { animation: squish .55s cubic-bezier(.3, 1.6, .5, 1); }
+  .pop.squish { animation: squish .6s ease-in-out; }
   @keyframes squish {
-    0% { transform: scale(1, 1); }
-    25% { transform: scale(1.05, .94); }
-    60% { transform: scale(.98, 1.03); }
-    100% { transform: scale(1, 1); }
+    0%, 100% { transform: scale(1, 1); }
+    30% { transform: scale(1.02, .98); }
+    65% { transform: scale(.995, 1.01); }
   }
-  .scene:hover .pop:not(.squish) { transform: scale(1.012); }
-  .pop { transition: transform .3s; }
 
   .layer { transform-origin: 50% 60%; }
   .face {
